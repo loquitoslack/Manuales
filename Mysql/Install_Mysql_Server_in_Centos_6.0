@@ -1,0 +1,25 @@
+Install Mysql Server in Centos 6.0 
+################################## 
+Install MySQL
+
+root@localhsot# yum install mysql-server mysql php-mysql
+
+How to configure MySQL
+----------------------
+root@localhsot#  chkconfig --levels 235 mysqld on
+
+Start the MySQL service
+-----------------------
+service mysqld start
+
+Log into MySQL for modified password
+------------------------------------
+mysql -u root
+Set the root user password for all local domains
+SET PASSWORD FOR 'root'@'localhost' = PASSWORD('new-password');
+SET PASSWORD FOR 'root'@'localhost.localdomain' = PASSWORD('new-password');
+SET PASSWORD FOR 'root'@'127.0.0.1' = PASSWORD('new-password');
+Drop the Any user
+DROP USER ''@'localhost';
+DROP USER ''@'localhost.localdomain';
+Exit MySQL
