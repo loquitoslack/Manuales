@@ -12,6 +12,10 @@ Start the MySQL service
 -----------------------
 service mysqld start
 
+Define password for root
+------------------------
+/usr/bin/mysqladmin -u root password 'Tuadoo4u'
+
 Log into MySQL for modified password
 ------------------------------------
 mysql -u root
