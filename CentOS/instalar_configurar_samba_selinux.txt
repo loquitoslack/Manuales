@@ -99,3 +99,39 @@ setsebool -P samba_portmapper 1
 
 Ejecute lo siguiente para permitir la ejecución sin confinamiento de programas dentro del directorio /var/lib/samba/scripts:
 setsebool -P samba_run_unconfined 1
+
+Iniciar el servicio y añadirlo al arranque del sistema
+######################################################
+
+Para iniciar los servicios nmb y smb por primera vez, ejecute:
+
+service nmb start
+service smb start
+
+chkconfig nmb on
+chkconfig smb on
+
+El archivo lmhosts
+
+El archivo /etc/samba/lmhosts (lmhosts es acrónimo de LAN Manager hosts) se utiliza de modo similar al archivo /etc/hosts, pero se utiliza específicamente para resolver los nombres NetBIOS. Debe resolver al menos el nombre del anfitrión local.
+
+Edite el archivo /etc/samba/lmhosts:
+
+vi /etc/samba/lmhosts
+Encontrará el siguiente contenido:
+
+127.0.0.1       localhost
+El nombre NetBIOS debe tener un máximo de doce caracteres alfanuméricos. Normalmente se define el nombre corto del servidor asociado a la dirección IP utilizada para acceder a la red de área local. La separación de campos se hace con un tabulador. Ejemplo:
+
+127.0.0.1       localhost
+192.168.70.1     servidor
+Opcionalmente se pueden añadir los nombres y direcciones IP de cada uno de los anfitriones de la red local. Ejemplo:
+
+127.0.0.1        localhost
+192.168.70.1     servidor
+192.168.70.2     joel
+192.168.70.3     blanca
+192.168.70.4     joelalejandro
+192.168.70.5     sergioarmando
+192.168.70.6     reneisaac
+192.168.70.7     finanzas
