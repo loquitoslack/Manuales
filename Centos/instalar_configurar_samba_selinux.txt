@@ -1,1 +1,0 @@
-instalar/básica de Samba en centos
