@@ -1,0 +1,376 @@
+                                     SELINUX
+--------------------------------------------------------------------------------------
+Selinux nos permite establecer restricciones de acceso a archivos procesos y puertos 
+con el uso de contextos y boleanos
+
+SELINUX utiliza dos modelos de seguridad:
+MAC  - Control de Acceso Mandatorio
+RBAC - Control de Acesso Basado en Roles
+
+Por Defecto Linux usa el modelo de seguridad DAC  (Control de Acceso Discreto)
+La principal ventaja de MAC es que maneja la seguridad en los objetos 
+(Archivos y Directorios) y sujetos (procesos del sistema)
+
+Cuando un sujeto, tal como una aplicación, intenta acceder a un objeto tal como 
+a un archivo, el servidor de aplicación de políticas verifica un caché de vector 
+de acceso (AVC), donde se registran los permisos de objeto y del sujeto. Si no se 
+puede tomar una decisión basado en los datos en el AVAC, la petición continua al 
+servidor de seguridad, el cual busca el contexto de seguridad de la aplicación y 
+del archivo en una matriz. Los permisos son entonces otorgados o negados, 
+con un mensaje de avc: denied detallado en /var/log/messages. 
+Los sujetos y objetos reciben su contexto de seguridad a partir de la política 
+instalada, que también proporciona información para llenar la matriz de seguridad 
+del servidor.
+
+Además de ejecutarse en un modo impositivo (Enforcing), SELinux puede ejecutarse 
+en un modo permisivo (Permissive), donde el AVC es verificado y se registran los 
+rechazos, pero SELinux no hace cumplir esta política.
+
+
+Modo de Ejecución de SELINUX
+--------------------------------------------------------------------------------------
+Permissive   0   (no ejecuta bloqueos, solo loguea en /var/log/audit/audit.log)
+Enforcing  1     (ejecuta bloqueos activamente)
+
+Saber el modo de ejecución de SELINUX
+$> getenforce
+$> sestatus
+
+Establecer SELINUX en modo permisivo
+$> setenforce 0            ó
+$> setenforce Permissive
+
+Establecer SELINUX en modo reforzado
+$> setenforce 1            ó
+$> setenforce Enforcing
+
+Tipo de Ejecución de Bloqueo
+---------------------------------------------------------------------------------------
+strict      ---> Todos los procesos se protegen activamente (requiere un mayor control)
+targeted    ---> Sólo los procesos y archivos marcados son protegidos
+
+Archivo general de configuración
+---------------------------------------------------------------
+$> vim /etc/sysconfig/selinux
+# This file controls the state of SELinux on the system.
+# SELINUX= can take one of these three values:
+#   enforcing - SELinux security policy is enforced.
+#   permissive - SELinux prints warnings instead of enforcing.
+#   disabled - SELinux is fully disabled.
+SELINUX=enforcing
+# SELINUXTYPE= type of policy in use. Possible values are:
+#   targeted - Only targeted network daemons are protected.
+#   strict - Full SELinux protection.
+SELINUXTYPE=targeted
+
+Contextos en SELINUX
+-----------------------------------------------------------------------
+Los contextos se aplican a procesos y archivos; cada proceso tiene
+un contexto y muchas veces los archivos tienen que coincidir 
+con los contextos definidos para un proceso
+Los comandos ps, ls, cp,  mkdir, etc soportan la opción -Z
+que permite visualizar los contextos 
+
+Procesos y sus contextos
+-----------------------------------------------------------------------
+$> ps axZ   (todos los procesos con sus contextos)
+
+$> ps axZ | grep tty2
+
+-------> usuario   ------> dominio
+|                  |  
+system_u:system_r:getty_t:s0    1859 tty2     Ss+    0:00 /sbin/mingetty /dev/tty2
+          |                |                                  |
+          |                ----> rango de influencia          --------------------> proceso
+          |                      (s0 todos)  
+          ---> rol              
+
+
+Instalamos apache
+--------------------------
+$> yum -y install httpd
+$> service httpd start
+$> chkconfig httpd on
+
+
+$> ps -ZC httpd
+
+             -------> rol de sistema
+             |
+unconfined_u:system_r:httpd_t:s0 4151 ?        00:00:00 httpd
+unconfined_u:system_r:httpd_t:s0 4154 ?        00:00:00 httpd
+|                      |
+|                      ------------> dominio httpd_t
+---> usuario no confinado
+
+Archivos y sus contextos
+-----------------------------------------------------------------------
+
+$> ls -Z /home                                    -------> dominio
+                                                 |
+drwx------. alumno alumno unconfined_u:object_r:user_home_dir_t:s0 alumno
+drwx------. tuxito tuxito unconfined_u:object_r:user_home_dir_t:s0 tuxito
+
+$> ls -Z /var/www
+                                              -----------> dominio
+                                             |
+drwxr-xr-x. root root system_u:object_r:httpd_sys_script_exec_t:s0 cgi-bin
+drwxr-xr-x. root root system_u:object_r:httpd_sys_content_t:s0 error
+drwxr-xr-x. root root system_u:object_r:httpd_sys_content_t:s0 html
+drwxr-xr-x. root root system_u:object_r:httpd_sys_content_t:s0 icons
+
+Cambiando los contextos
+----------------------------------------------------------------------------------------
+Instalaremos los paquetes policycoreutils y policycoreutils-python para disponer de los 
+comandos restorecon y semanage
+
+$> yum -y install policycoreutils policycoreutils-python 
+
+Vamos a hacer una prueba con el servidor web 
+
+$> cd 
+
+Verificamos el contexto del Document Root
+$> ls -Zd /var/www/html 
+                               
+                      ------> usuario 
+                      |
+drwxr-xr-x. root root system_u:object_r:httpd_sys_content_t:s0 /var/www/html
+                                         |
+                                         ---------> dominio
+
+Creamos un archivo dento del raiz web
+$> touch /var/www/html/index.html
+
+Verificamos el contexto del archivo creado; vemos que ha heredado el dominio del directorio 
+contenedor; pero no el usuario
+
+$> ls -Z /var/www/html/index.html
+-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 /var/www/html/index.html
+
+Creamos 2 archivos en el /tmp
+$> touch /tmp/prueba1
+$> touch /tmp/prueba2
+
+Verificamos los contextos de los archivos creados
+$> ls -lZ /tmp/prueba*
+-rw-r--r--. root root unconfined_u:object_r:user_tmp_t:s0 /tmp/prueba1
+-rw-r--r--. root root unconfined_u:object_r:user_tmp_t:s0 /tmp/prueba2
+
+Ahora copiamos prueba1 y movemos prueba2 al directorio raiz web
+$> cp /tmp/prueba1 /var/www/html
+$> mv /tmp/prueba2 /var/www/html
+
+
+Verificamos los contextos de los archivos
+$> ls -lZ /var/www/html/prueba*
+
+-rw-r--r--. root root unconfined_u:object_r:httpd_sys_content_t:s0 /var/www/html/prueba1
+-rw-r--r--. root root unconfined_u:object_r:user_tmp_t:s0 /var/www/html/prueba2
+
+Vemos que en el caso del archivo movido, mantiene el dominio original.
+
+Si intentamos descargar el archivo prueba2 nos denegará
+$> wget http://localhost
+$> wget http://localhost/prueba1
+$> wget http://localhost/prueba2
+
+Esto se debe a que los contextos (usuario,rol y dominio) deben ser iguales a los del i
+directorio contenedor
+
+Si queremos cambiar en forma específica el contexto de un archivo ejecutamos chcon
+$> chcon system_u:object_r:httpd_sys_content_t:s0 /var/www/html/prueba2
+
+otra forma de cambiar los contextos
+es restablecer todos los contextos; acorde a los contextos del directorio padre
+$> restorecon -RFvv /var/www/html/
+
+restorecon reset /var/www/html/index.html context unconfined_u:object_r:httpd_sys_content_t:s0->system_u:object_r:httpd_sys_content_t:s0
+restorecon reset /var/www/html/prueba2 context unconfined_u:object_r:user_tmp_t:s0->system_u:object_r:httpd_sys_content_t:s0
+restorecon reset /var/www/html/prueba1 context unconfined_u:object_r:httpd_sys_content_t:s0->system_u:object_r:httpd_sys_content_t:s0
+
+Intentamos descargar los archivos web y ya funciona
+
+$> wget http://localhost
+$> wget http://localhost/prueba1
+$> wget http://localhost/prueba2
+
+* Para saber todos los contextos marcados en archivos y directorios; ejecutamos
+$> semanage fcontext -l
+
+* para saber los contextos de los directorios web
+$> semanage fcontext -l | grep httpd
+
+
+Definiendo un contexto determinado a un directorio
+---------------------------------------------------------------------------
+Imaginemos que queremos crear un directorio para un dominio virtual en apache
+en una ruta diferente a los directorios web; entonces será necesario, definir
+un contexto similar al que tiene el directorio web /var/www/html
+
+Definimos el virtual host en apache
+
+$> vim /etc/httpd/conf.d/vhosts.conf
+NameVirtualHost *:80
+<VirtualHost *:80>
+    ServerName www.serverX.com
+    DocumentRoot "/var/www/html"
+    <Directory "/var/www/html">
+        Options Indexes FollowSymLinks
+        DirectoryIndex index.html index.php
+        AllowOverride All
+        Order allow,deny
+        Allow from all
+    </Directory>
+</VirtualHost>
+
+<VirtualHost *:80>
+    ServerName www.dominio1.com
+    DocumentRoot "/dominio1"
+    <Directory "/dominio1">
+        Options Indexes FollowSymLinks
+        DirectoryIndex index.html index.php
+        AllowOverride All
+        Order allow,deny
+        Allow from all
+    </Directory>
+</VirtualHost>
+
+$> mkdir /dominio1
+$> echo "hola mundo" > /dominio1/index.html
+
+Agregamos www.dominio1.com al /etc/hosts (agregar al final)
+$> vim /etc/hosts  
+192.168.120.X   www.dominio1.com 
+
+Reiniciamos
+$> service httpd restart
+
+Accedemos a www.dominio1.com
+$> wget  www.dominio1.com
+
+Verificamos los contextos del directorio y archivo creado
+
+$> ls -Zd /dominio1
+drwxr-xr-x. root root unconfined_u:object_r:default_t:s0 /dominio1
+
+$> ls -Z /dominio1
+-rw-r--r--. root root unconfined_u:object_r:default_t:s0 /dominio1/index.html
+
+Necesitamos que los contextos sean similares a los del drectorio /var/www/html
+$> ls -Zd /var/www/html
+drwxr-xr-x. root root system_u:object_r:httpd_sys_content_t:s0 /var/www/html
+
+Modificamos el contexto del directorio /dominio1
+$> semanage fcontext -a -f "" -t httpd_sys_content_t "/dominio1(/.*)?"
+                      |  |     |     
+                      |  |     ------> tipo de contexto
+                      |  ---------> tipo de archivo
+                      -----> agregar
+
+El contexto es httpd_sys_content_t que establece que el usuario:system_u y dominio:httpd_sys_content_t
+
+Restablecemos los contextos correctos para el servicio apache
+$> restorecon -RFvv /dominio1/
+restorecon reset /dominio1 context unconfined_u:object_r:default_t:s0->system_u:object_r:httpd_sys_content_t:s0
+restorecon reset /dominio1/index.html context unconfined_u:object_r:default_t:s0->system_u:object_r:httpd_sys_content_t:s0
+
+Verificamos el contexto del directorio /dominio1
+
+$> ls -Zd /dominio1
+drwxr-xr-x. root root system_u:object_r:httpd_sys_content_t:s0 /dominio1/
+
+$> ls -Z /dominio1
+-rw-r--r--. root root system_u:object_r:httpd_sys_content_t:s0 index.html
+
+Accedemos de nuevo a www.dominio1.com
+$> wget www.dominio1.com
+$> cat index.html
+
+Boleanos de SELINUX
+----------------------------
+Los servicios tienen unos determinados boleanos asociados; algunos de estos
+bienen deshabilitados; por eso podemos habilitarlos dependiendo como los 
+necesitemos
+
+Lista los boleanos y su descripción
+$> semanage boolean -l 
+
+Para listar todos los boleanos y sus flags de estado
+$> getsebool -a
+.
+.
+.
+xguest_connect_network --> on
+xguest_mount_media --> on
+xguest_use_bluetooth --> on
+xserver_object_manager --> off
+
+
+$> getsebool httpd_enable_homedirs
+httpd_enable_homedirs --> off
+
+Lista el boleano httpd_enable_homedirs
+$> semanage boolean -l | grep httpd_enable_homedirs 
+
+Habilitar las carpetas de públicas de usuarios en apache en forma temporal
+$> setsebool httpd_enable_homedirs on 
+
+Habilitar las carpetas de públicas de usuarios en apache en forma temporal de forma persistente
+$> setsebool -P httpd_enable_homedirs on 
+
+$> getsebool httpd_enable_homedirs
+httpd_enable_homedirs --> on
+
+Depuración de bloqueos y logs de errores de SELINUX
+-----------------------------------------------------------
+Para poder depurar los errores de SELinux usamos las utilidades 
+sethroubleshoot
+$> yum install setroubleshoot-server setroubleshoot setroubleshoot-plugins 
+
+$> service rsyslog restart
+$> service auditd restart
+$> chkconfig rsyslog on
+$> chkconfig auditd on
+
+vamos a crear un archivo test.html
+$> touch test.html
+
+Lo movemos al raiz web
+$> mv test.html /var/www/html
+
+Descargamos 
+$> wget http://localhost/test.html
+--2012-01-05 14:15:17--  http://localhost/test.html
+Resolviendo localhost... 127.0.0.1
+Connecting to localhost|127.0.0.1|:80... conectado.
+Petición HTTP enviada, esperando respuesta... 403 Forbidden
+2012-01-05 14:15:17 ERROR 403: Forbidden.
+
+
+Visualizamos los logs
+---------------------------------------------------------
+$>  tail -f /var/log/audit/audit.log
+type=AVC msg=audit(1325791061.177:642): avc:  denied  { getattr } for  pid=4161 comm="httpd" path="/var/www/html/test.html" dev=sda1 ino=793811 scontext=unconfined_u:system_r:httpd_t:s0 tcontext=unconfined_u:object_r:admin_home_t:s0 tclass=file
+type=SYSCALL msg=audit(1325791061.177:642): arch=c000003e syscall=6 success=no exit=-13 a0=7ff0db1a4588 a1=7fffa1de5100 a2=7fffa1de5100 a3=1 items=0 ppid=4151 pid=4161 auid=0 uid=48 gid=48 euid=48 suid=48 fsuid=48 egid=48 sgid=48 fsgid=48 tty=(none) ses=20 comm="httpd" exe="/usr/sbin/httpd" subj=unconfined_u:system_r:httpd_t:s0 key=(null)
+
+
+analizamos los logs con sealert
+$> sealert -a /var/log/audit/audit.log | less
+/test.html 
+
+Si queremos hacerlo en modo gráfico (Requiere RHEL 6.2) bug 625468
+$> sealert -b 
+
+Podemos ver tambien el ID de una alerta de un bloqueo (RHEL 6.2)
+$> tail -f /var/log/messages 
+..... For conplete SELINUX messages, run sealer -l e6e1d4dd5df1e-3e4d--ff3fcfdf09gg 
+
+Podemos ubicarlo tambien por el nombre de archivo test.html
+$> grep test.html /var/log/messages
+
+
+Para ver el detalle del error y su solución ejecutamos
+$> sealert -l e6e1d4dd5df1e-3e4d--ff3fcfdf09gg
+
+
