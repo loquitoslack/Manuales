@@ -1,0 +1,36 @@
+instalación del entorno gráfico en Centos 6 minimal
+---------------------------------------------------
+
+yum -y groupinstall x11 basic-desktop general-desktop
+
+Complementos de Administración
+------------------------------
+yum -y install system-config-services system-config-date \
+    system-config-printer system-config-lvm \
+    system-config-language system-config-keyboard \
+    cups-pk-helper policycoreutils-gui
+
+Login automático en CentOS 6
+----------------------------
+vim /etc/gdm/custom.conf
+[daemon]
+AutomaticLoginEnable=true
+AutomaticLogin=<nuestro_usuario>
+
+Instalación de OpenOffice 
+--------------------------
+Descargar .tar.gz de la siguente pagina: 
+http://es.libreoffice.org/
+
+wget -c "http://donate.libreoffice.org/es/dl/rpm-x86_64/4.2.4/es/LibreOffice_4.2.4_Linux_x86-64_rpm.tar.gz"
+
+tar -zxvf LibreOffice_4.2.4_Linux_x86-64_rpm.tar.gz
+
+instalar los paquetes necesarios 
+--------------------------------
+
+yum localinstall RPMS/*.rpm
+
+
+
+
