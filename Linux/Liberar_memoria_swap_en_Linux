@@ -1,0 +1,31 @@
+Liberar memoria swap en Linux
+-----------------------------
+
+Cuando los sistemas trabajan con determinados procesos, estos pueden llegar a consumir toda la RAM del sistema (puede pasar porque algunas aplicaciones no liberan esa memoria, o porque los servidores están mal dimensionados). Cuando ya no queda memoria RAM disponible, los procesos utilizan la memoria swap del sistema para satisfacer sus necesidades, aunque eso hace que se pierda rendimiento.
+En el momento que acaban esos procesos, la memoria swap que han utilizado no se libera y nos quedamos con un sistema con memoria swap en uso a pesar de tener memoria RAM disponible.
+
+Para liberar la memoria swap, tendremos que hacerlo de forma manual, volcando la información de la memoria swap en la RAM, y luego deshabilitando (swapoff) y volviendo a habilitar (swapon) el uso de swap.
+
+# free -m 
+                   total used free shared buffers cached
+Mem:                7875 7044  831      0     265   3915
+-/+ buffers/cache:  2862 5012
+Swap:               2055  166 1889
+# swapoff -a && free -m
+                   total used free shared buffers cached
+Mem:                7875 7145  729      0     265   3915
+-/+ buffers/cache:  2964 4911
+Swap:                  0    0    0
+# swapon -a && free -m
+                   total used free shared buffers cached
+Mem:                7875 7146  728      0     265   3915
+-/+ buffers/cache:  2965 4910
+Swap:               2055    0 2055
+ 
+
+Antes de hacerlo, debemos asegurarnos que en la memoria RAM hay suficiente espacio libre como para poder volcar todos los datos que ocupan la RAM.
+
+Si intentamos desactivar la swap en un sistema en el que no hay suficiente espacio en RAM para volcar esos datos, recibiremos este error:
+
+# swapoff -a
+swapoff: /dev/sda1: swapoff failed: Cannot allocate memory
