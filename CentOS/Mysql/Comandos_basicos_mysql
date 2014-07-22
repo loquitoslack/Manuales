@@ -1,0 +1,4 @@
+Ordenar de mayor a menor extrayendo un valor: 
+---------------------------------------------
+select id from users order by id desc limit 1;
+SELECT MAX(id) FROM users;
