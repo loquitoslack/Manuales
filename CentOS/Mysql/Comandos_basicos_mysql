@@ -2,3 +2,30 @@ Ordenar de mayor a menor extrayendo un valor:
 ---------------------------------------------
 select id from users order by id desc limit 1;
 SELECT MAX(id) FROM users;
+
+añadir select para una base de datos y usuario especifico 
+---------------------------------------------------------
+grant select on db_banco.* to "academia"@"172.16.16.117";
+
+revocar permisos select para una base de datos y usuario especifico
+-------------------------------------------------------------------
+revoke select on db_banco.* from "academia"@"172.16.16.117";
+
+
+Dar todos los permisos para una base de datos especifica
+--------------------------------------------------------
+GRANT ALL ON BD.* TO USER@localhost IDENTIFIED BY "PASSWORD";
+
+Para dar todos los permisos, incluido el WITH GRANT OPTION, debe de indicarse expresamente:
+------------------------------------------------------------------------------------------
+GRANT ALL ON BD.* TO USER@localhost IDENTIFIED BY "PASSWORD" WITH GRANT OPTION;
+
+
+GRANT select,insert,update,delete ON BD.* TO USER@localhost IDENTIFIED BY "PASSWORD";
+
+La función REVOKE se utiliza para retirar privilegios a los usuarios. 
+REVOKE privilegios ON base/tabla FROM usuario
+
+Así quitaríamos todos los permisos del usuario 
+REVOKE ALL ON BD.* from USER@localhost
+
