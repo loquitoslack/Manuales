@@ -1,0 +1,32 @@
+install vmware tools in kali Linux
+
+vim /etc/apt/sources.list 
+
+deb http://snapshot.debian.org/archive/debian/20130201T032911Z/ experimental main contrib non-fre
+
+apt-get -o Acquire::Check-Valid-Until=false update
+
+apt-get install build-essential linux-headers-$(uname -r)
+
+echo cups enabled >> /usr/sbin/update-rc.d
+
+ echo cups enabled >> /usr/sbin/update-rc.d
+
+echo vmware-tools enabled >> /usr/sbin/update-rc.d
+
+apt-get install gcc make linux-headers-$(uname -r)
+
+ln -s /usr/src/linux-headers-$(uname -r)/include/generated/uapi/linux/version.h /usr/src/linux-headers-$(uname -r)/include/linux/
+
+mkdir /mnt/vmware
+
+mount /dev/cdrom /mnt/vmware/
+
+cp -rf /mnt/vmware/VMwareTools* /tmp/
+
+cd /tmp/
+
+tar zxpf VMwareTools-*.tar.gz
+cd vmware-tools-distrib/
+
+./vmware-tools-install.pl

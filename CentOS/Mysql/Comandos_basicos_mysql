@@ -20,12 +20,18 @@ Para dar todos los permisos, incluido el WITH GRANT OPTION, debe de indicarse ex
 ------------------------------------------------------------------------------------------
 GRANT ALL ON BD.* TO USER@localhost IDENTIFIED BY "PASSWORD" WITH GRANT OPTION;
 
-
+Permisos especificos para una tabla
+-----------------------------------
 GRANT select,insert,update,delete ON BD.* TO USER@localhost IDENTIFIED BY "PASSWORD";
 
 La función REVOKE se utiliza para retirar privilegios a los usuarios. 
+---------------------------------------------------------------------
 REVOKE privilegios ON base/tabla FROM usuario
 
 Así quitaríamos todos los permisos del usuario 
+----------------------------------------------
 REVOKE ALL ON BD.* from USER@localhost
 
+Verificar cual es la ultima fila de una tabla
+---------------------------------------------
+select * from seg_integrante order by int_id desc limit 1;
