@@ -1,0 +1,11 @@
+--url="[URL]" Sirve para indicar la URL del recurso vulnerable.
+--method="[GET/POST]" Sirve para indicar el método (GET o POST) con el que se envían los datos.
+--data="[DATA]" En caso de usar el método POST este parámetro es obligatorio e indica los datos que se envian por POST.
+-p "[VARIABLE]" Sirve para indicar la variable vulnerable con la que se realiza la inyección.
+--prefix="[TEXT]" Se usa cuando es necesario añadir algo antes de la inyección usual de sqlmap para que funcione.
+--postfix="[TEXT]" Se usa cuando es necesario añadir algo después de la inyección usual de sqlmap para que funcione.
+--string="[STRING]" Se usa para especificar una cadena de texto que sqlmap utilizará para distinguir la pagina normal de la pagina de error. Esta cadena debe aparecer en la pagina normal, es decir la que se muestra cuando la condición es verdadera. Y no debe aparecer en la pagina de error, cuando la condición es falsa.
+-D "[DATABASE]" Para especificar el nombre de la base de datos.
+-T "[TABLE]" Para especificar el nombre de la tabla.
+-C "[COLUMNS]" Para especificar el nombre de las columnas. Los nombres van separados por comas.
+--dump Su presencia indica que sqlmap debe obtener los registros de la base de datos, tabla y columnas especificadas.
