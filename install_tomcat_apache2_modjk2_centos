@@ -1,0 +1,116 @@
+Como instalar Tomcat 6 y Apache2 usando mod_jk en CentOS 6.5
+27 de febrero, 2014 @ 14:48 — 0 comentarios
+
+En esta guía vamos a explicar como podemos instalar Apache 2 junto a Tomcat 6 usando mod_jk. Se trata de una configuración bastante sencilla y que presenta muchos beneficios.
+
+En esta configuración el servidor web Apache es el encargado de recibir y devolver todas las peticiones HTTP de los usuarios. Apache se encarga de redirigir las peticiones necesaria a Tomcat, mientras que los archivos estáticos y similares los sirve Apache directamente.
+
+Para crear esta guía nos hemos basado en la plantilla cloud CentOS 6.5 x64 que ofrecemos en nuestro servicio Cloud VPS.
+
+1 - Preparativos
+Antes de empezar, tienes que hacer acceder a tu servidor mediante SSH. La guía asume que estás logueado como root.
+
+En un nuevo servidor, lo primer que debes hacer siempre es actualizar los paquetes, para ello:
+
+yum -y upgrade
+Y dado que casi siempre se instalará un nuevo kernel, reiniciamos el servidor para empezar a usar el nuevo kernel:
+
+shutdown -r now
+Para terminar con los preparativos, instalamos el editor de texto Nano y las utilidades de compilación que necesitaremos:
+
+yum -y install nano gcc gcc-c++
+2 - Instalación de Tomcat
+Instalamos Tomcat 6:
+
+yum -y install tomcat6
+Y arrancamos el servicio:
+
+/etc/init.d/tomcat6 start
+Ahora, para verificar que Tomcat funciona correctamente, vamos una aplicación de prueba. Primero creamos la estructura de directorios:
+
+cd /var/lib/tomcat6/webapps
+mkdir helloworld
+Y por último, creamos un archivo index.jsp:
+
+nano helloworld/index.jsp
+En el que pegaremos el siguiente código:
+
+<HTML>
+ <HEAD>
+  <TITLE>Hello World</TITLE>
+ </HEAD>
+ <BODY>
+  <H1>Hello World</H1>
+  Today is: <%= new java.util.Date().toString() %>
+ </BODY>
+</HTML>
+Ahora verificamos que Tomcat este funcionando correctamente, para ello acceder con el navegador web a la siguiente dirección:
+
+http://[IP DEL SERVIDOR]:8080/helloworld/
+Donde veremos algo como:
+
+Hello World en Tomcat
+
+3 - Instalación de Apache
+Instalamos Apache:
+
+yum -y install http httpd-devel
+4 - Instalación de mod_jk
+Descargamos el connector mod_jk de Tomcat y lo compilamos contra Apache:
+
+cd /usr/local/src/
+wget http://apache.rediris.es//tomcat/tomcat-connectors/jk/tomcat-connectors-1.2.37-src.tar.gz
+tar zxf tomcat-connectors-1.2.37-src.tar.gz
+cd tomcat-connectors-1.2.37-src/native
+./configure --with-apxs=/usr/sbin/apxs
+make && make install
+5 - Conectar Apache y Tomcat con mod_jk
+A continuación deberemos modificar la configuración de Apache para que cargue el módulo mod_jk, para ello creamos un nuevo archivo de configuración:
+
+nano /etc/httpd/conf.d/mod_jk.conf
+Donde pegamos el siguiente código:
+
+LoadModule jk_module modules/mod_jk.so
+JKWorkersFile /etc/httpd/conf/workers.properties
+JkShmFile /var/log/httpd/mod_jk.shm
+JkLogFile /var/log/httpd/mod_jk.log
+JkLogLevel error
+A continuación debemos asegurarnos de que Tomcat tiene activado el conector con el protocolo binario AJP, para lo que abrimos el archivo server.xml:
+
+nano /etc/tomcat6/server.xml
+Y verificamos la existencia de una línea similar a la siguiente y nos aseguramos de que no este comentada:
+
+<Connector port="8009" protocol="AJP/1.3" redirectPort="8443" />
+Ahora creamos el archivo worker.properties
+
+nano /etc/httpd/conf/workers.properties
+Donde pegamos lo siguiente:
+
+# Definir un worker usando ajp13 
+worker.list=worker1
+
+# Definir las propiedades del worker (ajp13) 
+worker.worker1.type=ajp13 
+worker.worker1.host=localhost
+worker.worker1.port=8009
+Por último, creamos un VirtualHost nuevo:
+
+nano /etc/httpd/conf.d/000-vhost.conf
+Con el siguiente contenido:
+
+NameVirtualHost *:80
+<VirtualHost *:80>
+    ServerAdmin webmaster@localhost
+    DocumentRoot /var/www/html
+    ServerName TUDOMINIO 
+    ErrorLog logs/TUDOMINIO-error_log
+    CustomLog logs/TUDOMINIO-access_log common
+    JkMount /helloworld* worker1
+</VirtualHost>
+Ahora reinicia Apache y Tomcat:
+
+/etc/init.d/tomcat6 restart
+/etc/init.d/httpd restart
+Y accede con tu navegador web a la siguiente dirección para verificar que todo funciona correctamente:
+
+http://[IP DEL SERVIDOR]/helloworld/ 
