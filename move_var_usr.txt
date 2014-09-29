@@ -1,0 +1,14 @@
+S.O: Debian 7 amd64 bits
+
+Modificando las particiones del usr y var, algunos cambios que debes considerar:
+
+Para chromiun
+root@locahost# chmod 4755 /usr/lib/chromium/chrome-sandbox
+
+Para el sudo: 
+root@localhost# pkexec chown root:root /usr/bin/sudo
+root@localhost# pkexec chmod 4755 /usr/bin/sudo 
+
+Para vmware workstation:
+
+root@localhost# chmod u+s,a+x /usr/lib/vmware/bin/vmware-vmx
