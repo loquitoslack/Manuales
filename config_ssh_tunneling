@@ -1,0 +1,146 @@
+config ssh tunneling 
+
+Conectarse al servidor 172.16.66.254:22 a traves de un proxy 209.45.92.10:715 remotamente 
+-----------------------------------------------------------------------------------------
+cliente1=>Server1=>Server2
+192.168.100.1=>209.45.92.10:715=>172.16.66.254:22 
+
+root@192.168.100.1$ ssh -L 7900:172.16.66.254:22 eflores@209.45.92.10 -P715 -N 
+
+Conectarse a un servidor usando un protocolo seguro, en este caso el puerto 80
+------------------------------------------------------------------------------
+cliente1=>209.45.92.10:80 
+root@cliente1# ssh -L 7900:localhost:80 eflores@209.45.92.10 -p715 -N 
+root@cliente1# links 127.0.0.1:7900
+
+Conectarse a un servidor desde otro cliente2 
+--------------------------------------------
+
+cliente2(192.168.209.132) => cliente1(192.168.209.131):7900 => server1:80
+
+root@cliente1# ssh -L 0.0.0.0:7900:localhost:80 eflores@209.45.92.10 -p715 -N 
+root@cliente2# links http://192.168.209.131:7900 
+
+En lugar de especificar la IP 0.0.0.0, también podríamos usar la opción -g (Allows remote hosts to connect to local forwarded ports) así:
+
+cliente1$ ssh -g -L 7900:localhost:80 eflores@209.45.92.10 -p715 -N 
+
+Por otra parte, si hubiéramos querido restringir la conexión a sólo alguna de las IPs locales del sistema, podríamos haber sido más específicos:
+
+cliente1$ ssh -L 192.168.209.131:7900:localhost:80 eflores@209.45.92.10 -p715 -N
+
+Conexion remota inversa desde el server al cliente 
+--------------------------------------------------
+cliente1:22<=Server1 
+
+root@cliente1# ssh -R 7900:localhost:22 eflores@209.45.92.10 -p715 
+root@Server1# ssh -lroot 127.0.0.1 -p7900
+
+
+Conectarte remotamente de forma inversa para culquier host dentro de la LAN 
+cliente1:22<=Server(ALL LAN)
+
+root@ciente1# ssh -R 0.0.0.0:7900:localhost:22 eflores@209.45.92.10 -p715 
+root@server1# netstat -ltn 
+tcp        0      0 0.0.0.0:7900            0.0.0.0:*               LISTEN
+
+root@server(lan): ssh -lroot 209.45.92.10 -p7900 
+
+----------------------------------------------
+| externo2=>externo1=>wan=>interno1=>interno2 |
+----------------------------------------------
+Usar en externo1 un servicio TCP ofrecido por interno2 (Local port forwarding / bind_address=localhost / host=interno2)
+
+externo1 $ ssh -L 7900:interno2:5900 usuario@interno1
+externo1 $ vncviewer localhost::7900
+
+----------------------------------------------
+| externo2=>externo1=>wan=>interno1=>interno2 |
+----------------------------------------------
+Usar en interno1 un servicio TCP ofrecido por externo2 (Remote port forwarding / bind_address=localhost / host=externo2)
+
+externo1 $ ssh -R 7900:externo2:5900 usuario@interno1
+interno1 $ vncviewer localhost::7900
+
+----------------------------------------------
+| externo2=>externo1=>wan=>interno1=>interno2 |
+----------------------------------------------
+Usar en externo2 un servicio TCP ofrecido por interno2 (Local port forwarding / bind_address=0.0.0.0 / host=interno2)
+
+externo1 $ ssh -L 0.0.0.0:7900:interno2:5900 usuario@interno1
+externo1 $ ssh -g -L 7900:interno2:5900 usuario@interno1
+externo2 $ vncviewer externo1::7900
+
+----------------------------------------------
+| externo2=>externo1=>wan=>interno1=>interno2 |
+----------------------------------------------
+Usar en interno2 un servicio TCP ofrecido por externo2 (Remote port forwarding / bind_address=0.0.0.0 / host=externo2)
+
+externo1 $ ssh -R 0.0.0.0:7900:externo2:5900 usuario@interno1
+interno2 $ vncviewer interno1::7900
+
+Reenvío dinámico de puertos / montar un servidor SOCKS con SSH
+---------------------------------------------------------------
+
+clientessh $ ssh -D 1080 usuario@servidorssh
+o podríamos mejorarlo un poco con:
+
+clientessh $ ssh -fN -D 0.0.0.0:1080 usuario@servidorssh
+
+La opción -D es similar a las opciones -L y -R del reenvío estático de puertos. Como aquéllas, con esta podemos hacer que el cliente escuche sólo las peticiones locales o las que lleguen desde otros nodos, dependiendo de a qué dirección se asociemos la petición:
+
+-D [bind_address:]port
+Mientras que en el reenvío estático de puertos vimos que podíamos hacer reenvío inverso de puertos con la opción -R, con el reenvío dinámico no es posible. Sólo podemos crear el servidor SOCKS en el lado del cliente SSH, no en el lado del servidor SSH.
+
+1080 es el puerto típico de los servidores SOCKS, igual que el 8080 es el típico de los servidores proxy web.
+
+La opción -N evita que realmente se lance una sesión interactiva de shell remota. Es útil cuando sólo hacemos el ssh para establecer este túnel.
+
+La opción -f hace que el ssh se quede en segundo plano y se desasocie de la shell actual, de modo que el proceso se convierte en un demonio. No funciona sin la opción -N (o sin especificar un comando), ya que de otro modo habría una shell interactiva incompatible con que el proceso esté en segundo plano.
+
+Ejecutar ssh sin pasarle el password 
+------------------------------------
+apt-get install sshpass
+eflores@localhost$ sshpass -p "K4rr45k0?1981" ssh -leflores 209.45.92.10 -p715
+
+Redirigir un puerto local a otro
+---------------------------------
+Esto puede resultar útil cuando queremos que un servidor “escuche” en un puerto distinto del estándar sin tener que tocar la configuración del programa servidor concreto ni recurrir a iptables.
+Otro ejemplo de un tunel para tener el puerto 80 de un servidor apache dentro de nuestra pc local donde el puerto 81 sera nuestro puerto local y el puerto 80 es el puerto de espera de el servidor.
+sudo ssh -fNL 81:127.0.0.1:80 usuario@unidadlocal.com
+Despues de ejecutar este comando correctamente podemos abrir nuestro explorador web en la direccion http://localhost:81 o http://127.0.0.1:81
+
+$ proxychains wget http://www.google.es
+ProxyChains-3.1 (http://proxychains.sf.net)
+--19:13:20--  http://www.google.es/
+Resolving www.google.es... 
+|DNS-request| www.google.es
+|S-chain|-<>-10.23.37.3:1080-<><>-4.2.2.2:53-<><>-OK
+|DNS-response| www.google.es is 72.14.221.147
+72.14.221.147
+Connecting to www.google.es|72.14.221.147|:80... 
+|S-chain|-<>-10.23.37.3:1080-<><>-72.14.221.147:80-<><>-OK
+connected.
+HTTP request sent, awaiting response... 200 OK
+Length: unspecified [text/html]
+Saving to: `index.html'
+
+    [  <=>                                                       ] 6,016       24.0K/s   in 0.2s
+
+19:13:21 (24.0 KB/s) - `index.html' saved [6016]
+
+Para que esto funcione, hay que especificar el servidor proxy que queremos usar en /etc/proxychains.conf:
+
+[ProxyList]
+socks5 clientessh 1080
+También podemos decirle que las peticiones de DNS se hagan remotamente:
+
+# Proxy DNS requests - no leak for DNS data
+proxy_dns
+Además, en la salida anterior, hemos visto varios mensajes informativos propios del proxychains, no de wget en líneas marcadas con las cadenas |DNS-request|, |S-chain| o |DNS-response|. Si no quisiéramos verlos, también podemos ajustarlo en la configuración:
+
+# Quiet mode (no output from library)
+quiet_mode
+:wq
+
+Entrada
