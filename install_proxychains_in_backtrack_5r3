@@ -1,0 +1,3 @@
+apt-get install proxychains
+apt-get install tor
+netstat -ntpl 
