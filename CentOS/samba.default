@@ -1,0 +1,627 @@
+#opciones que aparecen en todos los recursos
+[global]
+############################################################
+###################### opciones basicas ####################
+############################################################
+#
+#Establece el nombre NetBios primario para el servidor samba
+netbios name = Hydra Server
+
+#Establece un literal descriptivo para el servidor samba
+server string = samba %v on (%h)
+
+	#variables:
+	######### Relativas a clientes ############
+	#%a => Arquitectura de cliente(samba,win98)
+	#%I => Direccion IP del Cliente 
+	#%m => Nombre NetBios del Cliente
+	#%M => Nombre DNS del Cliente
+	######## Relativas a usuarios #############
+	#%g => Grupo primario de %u
+	#%G => Grupo primario de %U
+	#%H => Directorio "home" de %u
+	#%u => Actual nombre de usuario de Unix
+	#%U => Nombre de usuario (no siempre usado por samba)
+	######## Relativas a recursos ############
+	#%p => Automontador de ruta para el recurso, si difiere de %P
+	#%P => Actual directorio root del recurso
+	#%S => Actual nombre del recurso
+	######## Relativas al Servidor ###########
+	#%d => Actual PID del Servidor
+	#%h => Nombre DNS de la maquina del Servidor Samba
+	#%L => Nombre NetBios del Servidor Samba
+	#%N => Directorio "home" del servidor, desde el mapa autmount
+	#%v => Version de Samba
+	######## Varias 
+	#%R => Nivel del protocolo SMB que se ha negociado
+	#%T => Fecha y hora actual
+
+#Establece el nombre NetBios de grupo de las maquinas al que pertenece el 
+#servidor
+workgroup = Laboratorio
+
+##############################################################
+############### opciones de configuracion de red #############
+##############################################################
+#							     
+#Especifica las maquinas que se pueden conectar Samba
+;hosts allow = 192.168.220. 134.213.233. localhost 
+
+#Especifica las maquinas que no se pueden conectar a samba
+;hosts deny = 192.168.220.102
+
+#Establece las interfaces de red a los que samba atendera, eth0(192.168.220.100)
+#eth1(134.213.233.110)
+;interfaces = 192.168.220.100/255.255.255.0 \ 
+	      134.213.233.110/255.255.255.0
+
+#Si es yes, samba enlazara con aquellas interfaces especificadas con la opcion
+#interfaces
+;bind interfaces only = yes
+
+#Establece direcciones IP para la escucha, para usar con multiples interfaces
+#virtuales en un servidor
+;socket address = #string (IP)
+
+#Observaciones 
+#Advierte que hemos colocado localhost tras la direccion de subred. Uno de los
+#errores mas comunes cuando intentamos usar la opcion hosts allow es desactivar
+#accidentalmente al servidor samba para comunicar consigo mismo.
+#Puedes especificar cualquiera de los siguientes formatos para esta opcion:
+	#Nombre de Hosts, ftp.example.com
+	#Direcciones ip, 130.63.9.252
+	#Nombres de Dominio, .ora.com => representa a todas las maquinas dentro
+	 #del dominio ora.com
+	#Grupos de Red, los cuales comienzan con un simbolo (@)
+	#SubRedes, 130.63.9. => significa todas las maquinas cuyas direcciones
+	 #ip comienzan por 130.63.9.
+	#La palabra clave ALL, q permite el acceso a cualquier cliente
+	#La palabra clave EXCEPTT seguida por uno o mas nombres, direcciones IP
+	 #Nombres de Dominio, grupos de red o subredes, ejemplo
+	 #hosts allow = ALL EXCEPT 192.168.110.	
+
+##############################################################
+#		Opciones deL fichero de Configuracion
+##############################################################
+#Estas opciones modifican el fichero de configuracion, los cuales no implican
+#situaciones estaticas.
+#
+	#Ejemplo:
+	#Si el fichero no existe, la opcion es ignorada
+	#[global]
+	#Establece la localizacion de un fichero de configuracion para ser
+	#usado en el actual.
+	;config file = /usr/local/samba/lib/smb.conf.%m
+	#################################################
+	#Ejemplo:
+	#[global]
+	#Especifica un segmento adicional de opciones de configuracion para ser
+	#incluidas a partir de ese punto en el fichero de configuracion
+	;include = /usr/local/samba/lib/smb.conf.%m
+	#################################################
+	#Ejemplo:
+	;[template]
+	;path=/dev/null
+	;writeable = yes
+	;browseable = yes
+	;valid users = andy, dave, peter
+	
+	;[data]
+	;path = /usr/local/samba
+	#Te permite clonar las opciones de configuracion de un recurso
+	#para el recurso actual
+	;copy = template
+#
+##############################################################
+
+##############################################################
+#		Servidores Virtuales
+##############################################################
+#Los servidores virtuales son una tecnica para crear multiples servidores 
+#NetBIOS en la red, cuando en realidad existe uno.
+#
+#
+#Nombre NetBIOS adicionales por los que responder, para usar multiples
+#servidores "virtuales" samba.
+;netbios aliases = Laboratorio sales accouting admin
+	#Ejemplo
+	#[global]
+	#netbios aliases = sales accounting admin
+	#include
+
+
+
+##############################################################
+#		Opciones de Ficheros de Registro
+##############################################################
+#
+#Establece la cantidad de mensajes de informacion que seran enviados al 
+#fichero de registro, 0 es nada, 3 es considerable; es de tipo numerico
+#(0-10)
+;log level = 2
+
+#Establece el nombre y localización del fichero registro que usara samba. 
+#Admite uso de variables.
+;log file = /var/log/samba/log.%m
+	#Por ejemplo, para cambiar el nombre y localizacion del fichero
+	#registro de Samba a /usr/local/logs/samba.log podrias usar lo 
+	#siguiente, tambien puedes usar sustitucion con variables para crear
+	#ficheros de registros especificos para usuarios o clientes
+	#individuales
+	;log file = /usr/local/logs/samba.log
+
+#Establece el tamaño maximo del fichero registro. Si se excede el tamaño,
+#el fichero sera renombrado a .bak y se iniciara un nuevo fichero de registro
+;max log size = 50
+
+#Si es no, no se incluye la fecha y hora junto a los mensajes(log's)
+;debug timestamp = yes
+
+#La opcion syslog provoca que los mensajes de registro de samba sean enviados
+#al registro del sistema de Unix. Al igual que con la opcion log level, este
+#puede ser un número desde 0 a 10. La informacion de registro con un nivel 
+#inferior al numero especificado sera enviada al registro del sistema.Sin 
+#embargo, registros de nivel igual o inferior al nivel de syslog, pero menores
+#que los de la opcion log level, seguiran siendo enviados a los ficheros 
+#de registro samba.
+#
+		#tabla: conversion de Prioridad de Syslog
+		#################################
+		#0 | LOG_ERR			#
+		#1 | LOG_WARNING		#
+		#2 | LOG_NOTICE			#
+		#3 | LOG_INFO			#
+		#4 | Y posteriores LOG_DEBUG	#
+		#################################
+#
+#Establece en nivel de los mensajes enviados al syslog. Los niveles por debajo
+#de syslog level seran enviados al registro del sistema.
+;syslog = 1
+
+#Si es yes, usa syslog y no envia salida alguna a los ficheros de registro 
+#samba
+;syslog only = yes
+#
+
+##############################################################
+#
+#opciones de configuracion en una comparticion de disco, cerrada entre
+#[]
+;[data]
+#
+#path(directory) => Establece el directorio Unix que se proporcionara para un
+#recurso de disco o se usara para el spooler de una impresora compartida.
+;path=/export/samba/data
+#
+#Establece el comentario que aparecera junto al recurso
+;comment = Data Drive
+#
+#Establece el nombre de la unidad: el nombre DOS para la unidad fisica, utiles 
+#en cd's con autorun, si desea lo puede copiar al disco o carpeta y agregar 
+#volume y automaticamente lo reconocera como cdrom.
+;volume = Sample-Data-Drive
+#
+#si es no, permite acceso de solo lectura al recurso
+;writeable = yes
+	#caso contrario, opcion opuesta(sino)
+	;read only = yes
+#si se establece a yes, la autentificacion no es necesaria para acceder al 
+#recurso
+;public = yes
+
+##############################################################
+#		Visualizacion, Navegacion o 'Browsing'
+##############################################################
+#5.1.1 Prevencion contra la visualizacion
+##################################
+	#Ejemplo 01
+	###########
+	#[data]
+	#path=/home/samba/data
+	#Puedes restringir la aparicion de un recursos en una lista de 
+	#visualizacion usando la opcion browseable. Esta opcion booleana
+	#evita que un recurso sea visible desde el Entorno de Red.
+	;browseable=no
+	#public=yes
+	#comment=Data Drive
+	#volume=Sample-Data-Drive
+	#writeable=yes
+	#
+	#Ejemplo 02
+	###########
+	#[homes]--> Este recurso es frecuentemente marcado como no 
+	#browseable para que un recurso llamdo [homes] no aparesca cuando
+	#los recursos de la maquina son interrogados. Sin embargo, si un
+	#usuario alice se logea y mira por los recursos de la maquina, le 
+	#aparecera una carpeta denominada [alice].¿Y que pasa si nos queremos
+	#asegurar de que el recurso de alice sea visible para todo el mundo 
+	#antes que ella se logee? Esto se puede hacer con la opcion global 
+	#auto services. Esta opcion precarga los recursos en la lista de 
+	#visualizacion para asegurarnos de que estos esten siempre visibles.
+	#
+	#[global]
+	#...
+	;auto services = alice
+	#...
+	#
+#####################################
+#5.1.2 Servicios por defecto
+####################################
+#En el caso de que un usuario no puede conectar a un recurso, puedes 
+#especificar un recurso por defecto al que el podra conectar.El especificar
+#un servicio por defecto puede ser util cuando envies un usuario perdido al
+#directorio de fichero ayuda. por ejemplo:
+#
+#[global]
+#....
+;default service = helpshare
+#....
+#
+#[helpshare]
+#path=/home/samba/helpshare/%S
+#browseable=yes
+#public=yes
+#comment=Default share for Unsuccessful Connections
+#volume=Sample-Data-Drive
+#writeable=no
+#
+#####################################
+#5.1.3 Elecciones de Visualizadores
+#####################################
+#Una maquina en cada subred siempre mantiene una lista de las actuales
+#maquinas activas en la red. Esta lista es denominada lista de visualizacion
+#o lista de navegacion, y el servidor que la mantiene es llamado visualizador
+#maestro local, el cual mantiene actualizado.
+	#¿Que pasa si quiero que nunca gane esa eleccion?,para hacer esto,
+	#necesitamos aprender como trabajan las elecciones de visualizador
+	#Esta informacion incluye lo siguiente:
+	#=>La version del protocolo de eleccion usada
+	#=>El sistema operativo de la maquina
+	#=>La cantidad de tiempo que el cliente ha permanecido en la red
+	#=>El nombre de maquina
+		#Aqui es donde se decide la eleccion. Los S.O. tienen asignado
+		#un valor binario en funcion de su version
+		#
+		#########################################################
+		#	Table: Valores de los S.O. en una Eleccion	#
+		#########################################################
+		# S.O.				# 	Valor		#
+		#-------------------------------#-----------------------#
+		# Samba				#   	  33		#
+		#-------------------------------#-----------------------#
+		# Windows NT/2000 Server	#	  32		#	
+		#-------------------------------#-----------------------#
+		# Windows NT Workstation 4.0	#	  17		#
+		#-------------------------------#-----------------------#
+		# Windows NT/2000/XP		#	  16		#
+		#-------------------------------#-----------------------#
+		# Windows 98			#	   2		#
+		#-------------------------------#-----------------------#
+		# Windows 95			#	   1		#
+		#-------------------------------#-----------------------#
+		# Windows for Worgroups		#	   1		#
+		#-------------------------------#-----------------------#
+		#
+		#A continuacion a cada computadora en la red se le asigna un
+		#valor distinto de acuerdo a su papel o rol en la red.
+		#
+		#########################################################
+		#	Table: Valores de Roles de Computadoras en una	#
+		#			  eleccion			#
+		#########################################################
+		#	       Rol		#      	  Valor		#
+		#-------------------------------#-----------------------#
+		# Controlador Primrio d Dominio #	   128		#
+		#-------------------------------#-----------------------#
+		# Cliente WINS			#	    32		#
+		#-------------------------------#-----------------------#
+		# Visualizador Maestro Preferido#	     8		#
+		#-------------------------------#-----------------------#
+		# Visualizador Maestro Activo(A)#	     4		#
+		#-------------------------------#-----------------------#
+		# Visualizador en Espera	#	     2		#
+		#-------------------------------#-----------------------#
+		# Visualizador de Seguridad A. 	#	     1		#
+		#########################################################
+	#Las direcciones se realizan de la siguiente forma:
+	#1.- La maquina con la mayor version de protocolo de eleccion ganara
+	#    (todos los clientes Windows tienen la version 1 del protocolo de
+	#     eleccion).
+	#
+	#2.- La maquina con el mayor valor de sistema operativo ganara la 
+	#    eleccion. 
+	#
+	#3.- Si hay conflicto, la maquina con el valor 'Visualizador Maestro
+	#    Preferido' (rol 8) ganara la eleccion.
+	#
+	#4.- Si todavia hay empate o conflicto, el cliente que haya estado mas
+	#    tiempo en linea ganara la eleccion
+	#
+	#5.- Finalmente, si todavia existe conflicto, el nombre del cliente
+	#    que por orden alfabetico vaya primero ganara
+	#
+	#6.- La maquina que ocupo el segundo lugar en la eleccion, puede 
+	#    convertirse en visualizador de seguridad.
+#Como resultado. si quieres que samba tome el rol de visualizador maestro
+#local, pero solo en el caso de que no haya un servidor Windows NT Server.
+	;os level = 31
+#Finalmente, los servidores Windows NT que estan sirviendo como controladores
+#primarios de dominio contienen un numero que les permite asumir el rol de 
+#de visualizador maestro local; esto es llamado el bit de visualizador maestro
+#preferido
+	;os level = 35
+	;local master = yes
+	; preferred master = yes
+#########################################
+#5.1.4 Visualizador Maestro de Dominio
+#########################################
+#El visualizador maestro de dominio propaga listas de visualizacion por cada 
+#una de las subredes del grupo de trabajo. Esto es posible cada visualizador
+#maestro local periodicamente sincroniza su lista de visualizacion con el 
+#visualizador maestro de dominio.
+#
+#Samba puede asumir el rol de visualizador maestro de dominio para todas las 
+#subredes en el grupo de trabajo con la siguiente opcion:
+;domain master = yes
+#########################################
+#5.1.4.1 Multiples Subredes
+#########################################
+	#Hay tres reglas que debe recordar cuando crees un grupo de trabajo
+	#o dominio:
+	#
+	#a)Debes tener un servidor Windows Nt o una maquina samba actuando 
+	#  como visualizador maestro local en cada subred del grupo de trabajo
+	#  o dominio (si tienes un visualizador maestro de dominio en una 
+	#  subred, un visualizador maestro local no es necesario).
+	#
+	#b)Debes tener un servidor Windows Nt o una maquina Samba actuando como
+	#  Visualizador maestro de dominio en algun punto del grupo de trabajo.
+	#
+	#c)Cada Visualizador maestro local debe ser instruido para que se 
+	#  sincronice con el visualizador maestro de dominio.
+	#  
+	#  Para mas detalles ver articulo 
+	#  /media/hda5/Manuales/Linux/Basico Linux/linux internet/ \
+	#  Linux En La Web/Servicios/Samba/usando-samba.pdf pagina 112
+	#
+
+######################################################################
+#		Opciones de Visualizacion (configuracion)
+######################################################################
+#Establece el S.O. como el que samba se anunciara a si mismo y a otras maquinas
+#en la red.
+#Ambito=[global]
+;announce as = NT
+
+#Establece la version del S.O. como el que samba se anunciara a si mismo y a 
+#las otras maquinas de la red.
+#Ambito=[global]
+;announce version = 4.2
+
+#Permite a los recursos ser displayados en la lista de recursos de maquinas, 
+#si quieres evitar que un recurso sea visible para un cliente, coloca no.
+#Ambito=[recurso]
+;browseable = yes
+
+#Si es yes, Samba proporcionara una lista de navegacion en este servidor.Si 
+#desactivas la lista de visualizacion, los clientes no pueden visualizar los
+#nombres de las otras maquinas, sus servicios, y otros dominios actualmente
+#disponibles en la red
+#Ambito=[global]
+;browse list = yes
+
+#Establece una lista de recursos que siempre apareceran en lista de navegacion
+#Ambito=[global]
+;auto services = <string(lista de recursos)>
+
+#Da un nombre a un recurso(service) que sera proporcionado si el cliente
+#solicita acceso a un recurso no listado en smb.conf, entonces samba intentara
+#conectar al usuario al recurso especificado por esta opcion en su lugar.
+#Ambito=[global]
+;default service = <string(nombre de recurso)>
+	#Ejemplo:
+	;default service = helpshare
+	#Observacion: No hay corchetes rodeando el nombre
+
+#Si es yes, samba intentara convertirse en visualizador maestro de la subred
+#local.
+#Ambito=[global]
+;local master = yes
+
+#Activa o desactiva avisos de tipo LAN Manager, le dice al demonio nmbd de 
+#samba si enviar o no anuncios de maquinas 'LAN Manager' en nombre del servidor
+#,estos anuncios permiten que el servidor sea añadido a la lista de 
+#visualizacion del cliente
+#Ambito=[global]
+;lm announce = auto
+
+#Especifica la frecuencia en segundos en que los anuncios "LAN Manager" seran
+#realizados si son activados, usada en conjuncion con lm announce, indica el
+#numero de segundos que nmbd esperara antes de emitir en difucion anuncios LAN
+#manager
+#Ambito=[global]
+;lm interval = 60
+
+#Si es yes samba usara el bit de visualizador maestro preferido para intentar
+#convertirse en el visualizador maestro local.Esto le da al servidor un status
+#mas alto en el grupo de trabajo con respecto al resto de maquinas al mismo 
+#nivel del S.O.
+#Ambito=[global]
+;preferred master = no
+
+#Si es yes, Samba intentara convertirse en el principal visualizador maestro 
+#para el grupo de trabajo
+#Ambito=[global]
+;domain master = no
+
+#Establece el nivel del S.O. de samba en una eleccion para visualizador maestro
+#local. Si quieres que samba gane la eleccion de visualizados maestro, debes 
+#establecer el primer nivel superior del S.O. al de cualesquiera otros que 
+#puedan existir en tu red. El valor defecto es 0, lo que significa que samba
+#perdera todas las elecciones, si quieres q gane todas agregar el valor 34
+#Ambito=[global]
+;os level = 0
+
+#Lista los servidores Samba para sincronizar con sus listas de navegacion, lo 
+#cual especifica que Samba deberia sincronizar sus listas de visualizacion con
+#los demas visualizadores maestros en otras subredes. Sin embargo, la 
+#sincronizacion puede ocurrir spñp con otros servidores samba, y no con 
+#computadoras Windows.
+#	#Esto fuerza a samba a hacer un broadcast de peticiones para 
+#	determinar las direcciones IP del los visualizadores maestros 
+#	locales en cada subred y asi poder iniciar la sincronizacion
+#Ambito=[global]
+;remote browse sync = <string (lista de direcciones IP)>
+	#Ejemplo
+	;remote browse sync = 192.168.234.92 192.168.236.2
+	;remote browse sync = 192.168.234.255 192.168.236.255
+	#Esto fuerza a samba a hacer un broadcast de peticiones para 
+	#determinar las direcciones IP del los visualizadores maestros 
+	#locales en cada subred y asi poder iniciar la sincronizacion
+
+#Lista subredes y grupos de trabajo a las que enviar paquetes de difusion, 
+#permitiendo a samba aparecer para visualizar listas, en resumen, Los servidores
+#samba son capaces de proporcionar listas de visualizacion a redes externas.
+#Ambito=[global]
+;remote announce = <string (Dir. IP / grupos de trabajo)
+	#Ejemplo
+	;remote announce = 192.168.234.255/ACCOUNTING \
+			   192.168.236.255/ACCOUNTING
+
+#################################################################
+#		Diferencias entre Sistemas de Ficheros		#
+#################################################################
+#Este tema incluye manejar enlaces simbolicos, archivos ocultos
+#y ficheros de configuracion(ficheros con 'punto')
+
+
+#proporciona nombre completo de usuario al cliente, algunos programas requieren
+#nombre completo para poder operar, Por ejemplo, si tus ficheros de contraseñas
+#UNIX contienen la sieguiente linea
+#rcollins:/KaBfco47Rer5:500:500:Robert COllins:/home/rcollins:/bin/ksh
+#Y la opcion en el fichero de configuracion es:
+#[global]
+# unix realname=yes
+#Entonces el nombre Robert Collins sera facilitado para cualquier cliente q
+#solicite el verdadero nombre del usuario rcollins
+#Ambito=global
+;unix realname=no
+
+#Indica una lista de directorios cuyos contenidos samba deberia hacerse
+#invisibles a los clientes.Advierte que hemos dicho contenidos, no directorio
+#Los usuarios podran entrar en el directorio, pero no podran descender por el 
+#arbol directorio-siempre veran una carpeta vacia.
+#En este caso los contenidos de los directorios /config y /defaults aparecerian
+#vaciospara el usuario, aunque existieran archivos en ellos, en adicion
+#los usuarios no podran escribir datos en la carpeta(lo cual evita la 
+#posibilidad de crear un archivo con el mismo nombre que uno ya existente, si 
+#un usuario intentaselo hacerlo recibira un mensaje de acceso denegado.
+#Ambito=recurso
+;dont descend=<string(lista de directorios)>
+	#Ejemplo
+	#[data]
+	  #path = /home/samba/data
+	  #browseable = yes
+	  #public = yes
+	  #writeable = yes
+	  #case sensitive = yes
+	  #dont descend = config defaults
+
+#Si es no, samba no seguira enlaces simbolicos; Asi cuando un cliente intenta 
+#abrir un enlace simbolico en un recurso compartido por un servidor samba, este
+#intentara seguir el enlace al archivo verdadero y permite al cliente abrirlo.
+#Ambito=recurso
+;follow symlinks=yes
+	#Ejemplo
+	#[data]
+	  #path=/home/samba/data
+	  #browseable=yes
+	  #public=yes
+	  #writeable=yes
+	  #case sensitive=no
+	  #follow symlinks=no
+
+#Si es yes, Samba usara una cache para llamadas getwd(), no deberias modificar
+#esta opcion en condiciones de configuracion normales.
+#Ambito=global
+;getwd cache=yes
+
+#Si es yes, Samba seguira enlaces simbolicos, fuera del recurso, con tal de que
+#la opcion follow symlinks este activada,esto causara de que samba siga todos 
+#los enlaces simbolicos fuera del actual arbol del recurso.Si creamos un 
+#archivo fuera del recurso, por ejemplo, en algun directorio 'home' de usuario
+#y luego creamos un enlace a el en el recurso como sigue:
+#ln -s ~tom/datafile ./datafile 
+#donde ./ --> directorio actual
+#Ambito=recurso
+;wide links = yes
+	#Ejemplo
+	#[data]
+	 #path=/home/samba/data
+	 #browseable=yes
+	 #public=yes
+	 #writeable=yes
+	 #case sensitive=no
+	 #follow symlinks=yes
+	 #wide links=yes
+
+#Lista de patrones de archivos para tratarlos como ocultos, oculta cualesquiera
+#archivos en el servidor que comiencen por un punto.
+#Ambito=recurso
+;hide dot files=yes
+
+#Lista de patrones de archivos para tratarlos como ocultos, En vez de 
+#simplemente ocultar los archivos que empiecen por un punto, puedes tambien
+#especificar un patron de cadena para que samba oculte determinados archivos
+#Ambito=recurso
+;hide files=<string (lista de archivos)>
+
+	#Ejemplo
+	#[data]
+	 #path=/home/samba/data
+	 #browseable=yes
+	 #public=yes
+	 #writeable=yes
+	 #case sensitive=no
+	 #hide files=/*java/*README*/
+		#observaciones: cada entrada para esta opcion debe comenzar, 
+		#terminar, o estar separada de otra con una barra (/), aunque 
+		#solo se liste un patron.Esta convencion permite que los 
+		#espacios aparescar en los nombres de archivos.
+
+#Lista de patrones de archivos a no mostrar nunca, con esta opcion samba nunca
+#admitira la existencia de estos archivos. No podra listarlos o abrirlos desde
+#el cleiente; la sintaxis es parecida a la opcion hide files antes mencionada,
+#Ejemplo: veto files=/*config/*default?/
+#Ambito=recurso
+;veto files=<string (lista de archivos)>
+
+#Si es yes, borrara los ficheros marcados por veto files cuando el directorio
+#en que reside sea eliminado.
+#Ambito=recurso
+;delete veto files = no
+
+##############################################################################
+#			Permisos de Ficheros y Atributos en MS-DOS           #
+#					y UNiX				     #	
+##############################################################################
+
+#Preserva el atributo DOS de "archivo" en bit de permiso de ejecucion de 
+#usuario (0100)
+;map archive=yes
+
+#preserva el atributo DOS de "sistema" en bit de permiso de ejecucion de 
+#grupo (0010)
+;map system=no
+
+
+
+
+
+
+
+
+
+
+
+
